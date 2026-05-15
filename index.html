@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D ZED Flash Anzan - Jungle Savanna Math Adventure</title>
+    <style>
+        :root {
+            --sky-top: #4da6ff;
+            --sky-bottom: #ffd27f;
+            --savanna-green: #556B2F;
+            --savanna-dry: #d2b48c;
+            --stone-dark: #3e2723;
+            --neon-plus: #00e5ff;
+            --neon-minus: #ff5722;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #111;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 450px;
+            height: 92vh;
+            max-height: 850px;
+            background: linear-gradient(to bottom, var(--sky-top), var(--sky-bottom));
+            position: relative;
+            overflow: hidden;
+            border: 8px solid var(--stone-dark);
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+        }
+
+        /* --- UI & SCREENS --- */
+        .screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 10;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        /* 3D Title Effect */
+        .game-title {
+            font-size: 2.8rem;
+            font-weight: 900;
+            color: #fff;
+            text-transform: uppercase;
+            text-shadow: 
+                0 1px 0 #ccc, 0 2px 0 #c5c5c5, 0 3px 0 #bbb, 0 4px 0 #b0b0b0,
+                0 5px 0 #a5a5a5, 0 6px 0 #a0a0a0, 0 7px 8px rgba(0,0,0,0.6),
+                0 0 10px rgba(255,210,127,0.5);
+            line-height: 1.1;
+            margin-top: 40px;
+            transform: perspective(300px) rotateX(10deg);
+        }
+
+        .game-subtitle {
+            font-size: 1rem;
+            color: #fff;
+            background: rgba(85, 107, 47, 0.85);
+            padding: 6px 16px;
+            border-radius: 20px;
+            margin-top: 15px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            border: 2px solid #fff;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #8b5a2b, #4a2e1b);
+            color: #fff;
+            border: 3px solid #d2b48c;
+            padding: 14px 40px;
+            font-size: 1.4rem;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 6px 0 #2a1a0f, 0 10px 20px rgba(0,0,0,0.4);
+            transition: all 0.1s ease;
+            margin-top: auto;
+            margin-bottom: 60px;
+            text-transform: uppercase;
+        }
+
+        .btn:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 #2a1a0f, 0 4px 10px rgba(0,0,0,0.4);
+        }
+
+        /* --- HUD --- */
+        #hud {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            right: 15px;
+            display: flex;
+            justify-content: space-between;
+            z-index: 20;
+        }
+
+        .hud-item {
+            background: rgba(62, 39, 35, 0.85);
+            color: #fff;
+            padding: 8px 16px;
+            border-radius: 12px;
+            border: 2px solid #d2b48c;
+            font-weight: bold;
+            font-size: 0.95rem;
+        }
+
+        /* --- ENVIRONMENT / PARALLAX --- */
+        .environment {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+
+        .layer {
+            position: absolute;
+            width: 200%;
+            bottom: 0;
+            left: 0;
+            background-repeat: repeat-x;
+            background-position: bottom left;
+        }
+
+        /* SVG Procedural Background Elements */
+        .bg-clouds {
+            height: 40%;
+            top: 15%;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='40' viewBox='0 0 100 40'%3E%3Cpath d='M20 30c0-5.5 4.5-10 10-10 1.5 0 3 .3 4.4.9C36.6 16.5 40.5 14 45 14c6.1 0 11.1 4.5 11.9 10.3 1.3-.8 2.8-1.3 4.5-1.3 4.4 0 8 3.6 8 8 0 .4 0 .9-.1 1.3H20v-.3z' fill='%23ffffff' fill-opacity='0.25'/%3E%3C/svg%3E");
+            animation: moveBg 40s linear infinite;
+        }
+
+        .bg-mountains {
+            height: 35%;
+            bottom: 25%;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='100' viewBox='0 0 200 100'%3E%3Cpolygon points='0,100 40,40 90,80 140,20 200,100' fill='%238c9e5c'/%3E%3C/svg%3E");
+            background-size: 300px 100%;
+            animation: moveBg 20s linear infinite;
+        }
+
+        .bg-trees {
+            height: 30%;
+            bottom: 20%;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='100' viewBox='0 0 150 100'%3E%3Cpath d='M30,100 L30,70 L10,70 L25,40 L15,40 L35,10 L55,40 L45,40 L60,70 L40,70 L40,100 Z' fill='%23445826'/%3E%3Ccircle cx='110' cy='60' r='25' fill='%235c7538'/%3E%3Crect x='106' y='80' width='8' height='20' fill='%233e2723'/%3E%3C/svg%3E");
+            background-size: 200px 100%;
+            animation: moveBg 8s linear infinite;
+        }
+
+        .floor {
+            height: 22%;
+            width: 100%;
+            position: absolute;
+            bottom: 0;
+            background: linear-gradient(to bottom, #c2a673 0%, #8b6c3c 100%);
+            border-top: 6px solid #556B2F;
+            z-index: 2;
+        }
+
+        .pathway {
+            position: absolute;
+            width: 100%;
+            height: 60px;
+            bottom: 20px;
+            background: rgba(0,0,0,0.08);
+            transform: perspective(200px) rotateX(20deg);
+            z-index: 3;
+        }
+
+        /* --- CHARACTER ANIMATION --- */
+        #player {
+            position: absolute;
+            bottom: 35px;
+            left: 60px;
+            width: 65px;
+            height: 90px;
+            z-index: 5;
+            transition: transform 0.2s ease;
+        }
+
+        /* Styled CSS Boy Character */
+        .boy-head {
+            width: 28px;
+            height: 28px;
+            background: #ffdbac;
+            border-radius: 50%;
+            position: absolute;
+            top: 0;
+            left: 18px;
+            box-shadow: inset -2px -2px 0 rgba(0,0,0,0.1);
+        }
+        .boy-hair {
+            width: 32px;
+            height: 16px;
+            background: #4a2e1b;
+            border-radius: 16px 16px 0 0;
+            position: absolute;
+            top: -3px;
+            left: 16px;
+        }
+        .boy-body {
+            width: 26px;
+            height: 38px;
+            background: #29b6f6; /* Cyan shirt matching reference */
+            border-radius: 6px;
+            position: absolute;
+            top: 26px;
+            left: 19px;
+        }
+        .boy-backpack {
+            width: 12px;
+            height: 28px;
+            background: #5d4037;
+            border-radius: 4px;
+            position: absolute;
+            top: 30px;
+            left: 10px;
+        }
+        .boy-legs {
+            width: 24px;
+            height: 16px;
+            background: #795548; /* Shorts */
+            position: absolute;
+            top: 62px;
+            left: 20px;
+            border-radius: 0 0 4px 4px;
+        }
+        .leg {
+            width: 8px;
+            height: 22px;
+            background: #ffdbac;
+            position: absolute;
+            top: 74px;
+            transform-origin: top center;
+        }
+        .leg-left { left: 21px; animation: runCycle 0.5s infinite alternate; }
+        .leg-right { left: 35px; animation: runCycle 0.5s infinite alternate-reverse; }
+        
+        .boot {
+            width: 14px;
+            height: 10px;
+            background: #3e2723;
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            border-radius: 4px 6px 2px 2px;
+        }
+
+        @keyframes runCycle {
+            0% { transform: rotate(-25deg); }
+            100% { transform: rotate(25deg); }
+        }
+
+        @keyframes moveBg {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-50%); }
+        }
+
+        /* --- ANZAN DISPLAY FLASH --- */
+        #display-box {
+            margin-top: 140px;
+            width: 240px;
+            height: 140px;
+            background: rgba(42, 26, 15, 0.9);
+            border: 4px solid #d2b48c;
+            border-radius: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+            z-index: 15;
+            position: relative;
+        }
+
+        #number-flash {
+            font-size: 3.8rem;
+            font-weight: 900;
+            transition: transform 0.05s ease;
+        }
+
+        .state-plus {
+            color: var(--neon-plus);
+            text-shadow: 0 0 15px var(--neon-plus), 0 0 30px var(--neon-plus);
+        }
+
+        .state-minus {
+            color: var(--neon-minus);
+            text-shadow: 0 0 15px var(--neon-minus), 0 0 30px var(--neon-minus);
+        }
+
+        /* --- INTERACTIVE INPUT INTERFACE --- */
+        #input-panel {
+            position: absolute;
+            bottom: 40px;
+            width: 85%;
+            background: rgba(62, 39, 35, 0.95);
+            border: 3px solid #d2b48c;
+            border-radius: 16px;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.5);
+            z-index: 25;
+        }
+
+        #answer-input {
+            width: 100%;
+            background: #22120c;
+            border: 2px solid #a67c52;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 2rem;
+            text-align: center;
+            padding: 8px;
+            margin-bottom: 12px;
+            font-weight: bold;
+            outline: none;
+        }
+
+        #answer-input:focus {
+            border-color: var(--neon-plus);
+        }
+
+        .num-pad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .key {
+            background: #5d4037;
+            border: 2px solid #8d6e63;
+            color: white;
+            padding: 10px;
+            font-size: 1.25rem;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+
+        .key:active {
+            background: #8d6e63;
+        }
+
+        /* --- UTILITY STYLES --- */
+        .stage-banner {
+            font-size: 1.8rem;
+            color: #fff;
+            font-weight: 800;
+            background: linear-gradient(90deg, transparent, rgba(0,0,0,0.4), transparent);
+            width: 100%;
+            padding: 5px;
+            margin-top: 10px;
+        }
+
+        .status-msg {
+            font-size: 2rem;
+            font-weight: 900;
+            color: #fff;
+            margin-top: 40px;
+            text-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        
+        <!-- HUD Statistics Layer -->
+        <div id="hud" class="hidden">
+            <div class="hud-item" id="hud-stage">STAGE: 1 / 50</div>
+            <div class="hud-item" id="hud-score">SCORE: 0</div>
+        </div>
+
+        <!-- Parallax Animated Environment -->
+        <div class="environment">
+            <div class="layer bg-clouds" id="layer-clouds"></div>
+            <div class="layer bg-mountains" id="layer-mountains"></div>
+            <div class="layer bg-trees" id="layer-trees"></div>
+            <div class="floor"></div>
+            <div class="pathway"></div>
+        </div>
+
+        <!-- Boy Runner Character Model -->
+        <div id="player" class="hidden">
+            <div class="boy-hair"></div>
+            <div class="boy-backpack"></div>
+            <div class="boy-head"></div>
+            <div class="boy-body"></div>
+            <div class="boy-legs"></div>
+            <div class="leg leg-left"><div class="boot"></div></div>
+            <div class="leg leg-right"><div class="boot"></div></div>
+        </div>
+
+        <!-- MENU SCREEN -->
+        <div id="screen-menu" class="screen">
+            <h1 class="game-title">3D ZED<br>Flash Anzan</h1>
+            <div class="game-subtitle">JUNGLE SAVANNA ADVENTURE</div>
+            <button class="btn" onclick="startGame()">Start Quest</button>
+        </div>
+
+        <!-- FLASH RUNNER SCREEN -->
+        <div id="screen-game" class="screen hidden">
+            <div class="stage-banner" id="stage-banner-txt">STAGE 1</div>
+            <div id="display-box">
+                <div id="number-flash" class="state-plus">---</div>
+            </div>
+        </div>
+
+        <!-- INPUT RESPOND SCREEN -->
+        <div id="screen-input" class="screen hidden">
+            <div class="status-msg" style="margin-top: 80px; color: #ffd27f;">ENTER VALUE</div>
+            
+            <div id="input-panel">
+                <input type="number" id="answer-input" readonly placeholder="?">
+                <div class="num-pad">
+                    <button class="key" onclick="pressKey('1')">1</button>
+                    <button class="key" onclick="pressKey('2')">2</button>
+                    <button class="key" onclick="pressKey('3')">3</button>
+                    <button class="key" onclick="pressKey('4')">4</button>
+                    <button class="key" onclick="pressKey('5')">5</button>
+                    <button class="key" onclick="pressKey('6')">6</button>
+                    <button class="key" onclick="pressKey('7')">7</button>
+                    <button class="key" onclick="pressKey('8')">8</button>
+                    <button class="key" onclick="pressKey('9')">9</button>
+                    <button class="key" style="background:#c62828;" onclick="pressKey('C')">C</button>
+                    <button class="key" onclick="pressKey('0')">0</button>
+                    <button class="key" onclick="pressKey('-')">-</button>
+                </div>
+                <button class="btn" style="margin: 5px 0 0 0; width:100%; padding:10px;" onclick="submitAnswer()">Submit</button>
+            </div>
+        </div>
+
+        <!-- ENDGAME GAME OVER / WIN SCREEN -->
+        <div id="screen-over" class="screen hidden">
+            <h1 class="game-title" id="over-title">GAME OVER</h1>
+            <div class="status-msg" id="over-msg">You stumbled!</div>
+            <button class="btn" id="over-btn" onclick="returnToMenu()">Try Again</button>
+        </div>
+
+    </div>
+
+    <script>
+        // Game State Variables
+        let currentStage = 1;
+        let runningScore = 0;
+        let stageFormula = [];
+        let correctAnswer = 0;
+        let animationSpeed = 1;
+
+        // Configuration Arrays for progressive scaling across 50 stages
+        // Format: [numberOfOperations, digitsMax]
+        function getStageConfig(stage) {
+            if (stage <= 10) return { ops: 4 + Math.floor(stage/3), digits: 1, speed: 700 - (stage * 20) }; // single digit scaling lengths
+            if (stage <= 30) return { ops: 5 + Math.floor(stage/6), digits: 2, speed: 600 - (stage * 8) };  // double digit mixes
+            if (stage <= 50) return { ops: 6 + Math.floor(stage/8), digits: 3, speed: 450 - (stage * 4) };  // triple digit legends
+            return { ops: 8, digits: 3, speed: 300 };
+        }
+
+        // Setup DOM Hooks
+        const layers = [
+            document.getElementById('layer-clouds'),
+            document.getElementById('layer-mountains'),
+            document.getElementById('layer-trees')
+        ];
+        const player = document.getElementById('player');
+        const numFlash = document.getElementById('number-flash');
+        const answerInput = document.getElementById('answer-input');
+
+        function setParallaxSpeed(multiplier) {
+            layers[0].style.animationDuration = `${40 / multiplier}s`;
+            layers[1].style.animationDuration = `${20 / multiplier}s`;
+            layers[2].style.animationDuration = `${8 / multiplier}s`;
+            
+            // Adjust running legs animation timing dynamically
+            const legs = document.querySelectorAll('.leg');
+            legs.forEach(leg => {
+                leg.style.animationDuration = `${0.6 / multiplier}s`;
+            });
+        }
+
+        function showScreen(screenId) {
+            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+            document.getElementById(screenId).classList.remove('hidden');
+        }
+
+        function startGame() {
+            currentStage = 1;
+            runningScore = 0;
+            document.getElementById('hud').classList.remove('hidden');
+            player.classList.remove('hidden');
+            initiateStage();
+        }
+
+        function initiateStage() {
+            document.getElementById('hud-stage').innerText = `STAGE: ${currentStage} / 50`;
+            document.getElementById('hud-score').innerText = `SCORE: ${runningScore}`;
+            document.getElementById('stage-banner-txt').innerText = `STAGE ${currentStage}`;
+            answerInput.value = '';
+            
+            const config = getStageConfig(currentStage);
+            generateAnzanFormula(config.ops, config.digits);
+            
+            showScreen('screen-game');
+            setParallaxSpeed(2.0); // Sprint processing speed
+            
+            setTimeout(() => {
+                executeFlashSequence(config.speed);
+            }, 1200);
+        }
+
+        function generateAnzanFormula(operationsCount, digitType) {
+            stageFormula = [];
+            let maxVal = Math.pow(10, digitType) - 1;
+            let minVal = Math.pow(10, digitType - 1);
+            if(digitType === 1) minVal = 1; // Correct lower bound for single digits
+
+            // First number always positive seed
+            let runningTotal = Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
+            stageFormula.push(runningTotal);
+
+            for (let i = 1; i < operationsCount; i++) {
+                let nextNum = Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
+                // Pick sign natively, avoid drop below zero running logic bounds
+                if (Math.random() > 0.45 || runningTotal - nextNum < 0) {
+                    runningTotal += nextNum;
+                    stageFormula.push(nextNum); // Positive sign implied
+                } else {
+                    runningTotal -= nextNum;
+                    stageFormula.push(-nextNum); // Negative representation
+                }
+            }
+            correctAnswer = runningTotal;
+            console.log("Stage Answer Cheat-Sheet: " + correctAnswer); // System developer check logs
+        }
+
+        function executeFlashSequence(speedDelay) {
+            let index = 0;
+
+            function runInterval() {
+                if (index < stageFormula.length) {
+                    let val = stageFormula[index];
+                    
+                    // Flash off quickly before showing next element
+                    numFlash.innerText = '';
+                    numFlash.className = '';
+                    
+                    setTimeout(() => {
+                        if (val >= 0) {
+                            numFlash.innerText = index === 0 ? `${val}` : `+${val}`;
+                            numFlash.className = 'state-plus';
+                        } else {
+                            numFlash.innerText = `${val}`; // Already contains '-' sign
+                            numFlash.className = 'state-minus';
+                        }
+                        
+                        // Mild 3D bounce scale punch
+                        numFlash.style.transform = "scale(1.15)";
+                        setTimeout(() => numFlash.style.transform = "scale(1.0)", 80);
+                        
+                        index++;
+                        setTimeout(runInterval, speedDelay);
+                    }, 60); 
+                } else {
+                    // Sequence evaluation finished
+                    setTimeout(() => {
+                        setParallaxSpeed(0.4); // Slow down pace down during answer phase
+                        showScreen('screen-input');
+                    }, 800);
+                }
+            }
+            runInterval();
+        }
+
+        // Handle Custom Onscreen Keypad Presses
+        function pressKey(char) {
+            if (char === 'C') {
+                answerInput.value = '';
+            } else if (char === '-') {
+                if (!answerInput.value.includes('-') && answerInput.value === '') {
+                    answerInput.value = '-';
+                }
+            } else {
+                if (answerInput.value === '-') {
+                    answerInput.value = '-' + char;
+                } else {
+                    answerInput.value += char;
+                }
+            }
+        }
+
+        function submitAnswer() {
+            let playerInput = parseInt(answerInput.value);
+            
+            if (playerInput === correctAnswer) {
+                // Correct processing state mechanics
+                runningScore += currentStage * 100;
+                if (currentStage >= 50) {
+                    endGame(true);
+                } else {
+                    currentStage++;
+                    initiateStage();
+                }
+            } else {
+                // Mistake state processing 
+                endGame(false);
+            }
+        }
+
+        function endGame(isWin) {
+            document.getElementById('hud').classList.add('hidden');
+            player.classList.add('hidden');
+            setParallaxSpeed(0);
+            showScreen('screen-over');
+            
+            const title = document.getElementById('over-title');
+            const msg = document.getElementById('over-msg');
+            const btn = document.getElementById('over-btn');
+
+            if (isWin) {
+                title.innerText = "VICTORY!";
+                title.style.color = "var(--neon-plus)";
+                msg.innerText = `Sensational math precision!\nFinal Score: ${runningScore}`;
+                btn.innerText = "Conquer Again";
+            } else {
+                title.innerText = "GAME OVER";
+                title.style.color = "var(--neon-minus)";
+                msg.innerText = `Calculation error!\nCorrect answer was: ${correctAnswer}\nStaged Reached: ${currentStage}`;
+                btn.innerText = "Restart Run";
+            }
+        }
+
+        function returnToMenu() {
+            showScreen('screen-menu');
+        }
+    </script>
+</body>
+</html>
