@@ -1,670 +1,1330 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D ZED Flash Anzan - Jungle Savanna Math Adventure</title>
-    <style>
-        :root {
-            --sky-top: #4da6ff;
-            --sky-bottom: #ffd27f;
-            --savanna-green: #556B2F;
-            --savanna-dry: #d2b48c;
-            --stone-dark: #3e2723;
-            --neon-plus: #00e5ff;
-            --neon-minus: #ff5722;
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZED Flash Anzan – Jungle Run</title>
+<link href="https://fonts.googleapis.com/css2?family=Boogaloo&family=Fredoka+One&family=Nunito:wght@400;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --jungle-dark: #0d1f0f;
+    --jungle-mid: #1a3a1c;
+    --jungle-green: #2d6a2f;
+    --jungle-light: #4caf50;
+    --jungle-lime: #8bc34a;
+    --jungle-yellow: #ffd600;
+    --jungle-orange: #ff8f00;
+    --jungle-red: #e53935;
+    --sky-top: #0a1628;
+    --sky-bot: #1b3a2a;
+    --diamond: #00e5ff;
+    --diamond2: #b2ebf2;
+    --flash-bg: rgba(255,255,255,0.96);
+    --text-dark: #1a2e1b;
+    --gold: #ffd700;
+    --shadow: rgba(0,0,0,0.7);
+  }
 
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            user-select: none;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-        body {
-            background-color: #111;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            overflow: hidden;
-        }
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    font-family: 'Nunito', sans-serif;
+    background: var(--jungle-dark);
+    user-select: none;
+  }
 
-        #game-container {
-            width: 100%;
-            max-width: 450px;
-            height: 92vh;
-            max-height: 850px;
-            background: linear-gradient(to bottom, var(--sky-top), var(--sky-bottom));
-            position: relative;
-            overflow: hidden;
-            border: 8px solid var(--stone-dark);
-            border-radius: 16px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
-        }
+  /* ── CANVAS WRAPPER ── */
+  #gameWrapper {
+    position: relative;
+    width: 100vw; height: 100vh;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
 
-        /* --- UI & SCREENS --- */
-        .screen {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            z-index: 10;
-            padding: 20px;
-            text-align: center;
-        }
+  canvas#bg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+  }
 
-        .hidden {
-            display: none !important;
-        }
+  /* ── SCREENS ── */
+  .screen {
+    position: absolute;
+    inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    z-index: 30;
+    transition: opacity .4s;
+  }
+  .screen.hidden { opacity: 0; pointer-events: none; }
 
-        /* 3D Title Effect */
-        .game-title {
-            font-size: 2.8rem;
-            font-weight: 900;
-            color: #fff;
-            text-transform: uppercase;
-            text-shadow: 
-                0 1px 0 #ccc, 0 2px 0 #c5c5c5, 0 3px 0 #bbb, 0 4px 0 #b0b0b0,
-                0 5px 0 #a5a5a5, 0 6px 0 #a0a0a0, 0 7px 8px rgba(0,0,0,0.6),
-                0 0 10px rgba(255,210,127,0.5);
-            line-height: 1.1;
-            margin-top: 40px;
-            transform: perspective(300px) rotateX(10deg);
-        }
+  /* ── TITLE SCREEN ── */
+  #titleScreen {
+    background: linear-gradient(180deg, #071408 0%, #0d2b10 60%, #193d1b 100%);
+  }
+  .title-logo {
+    text-align: center;
+    margin-bottom: 30px;
+    animation: floatLogo 3s ease-in-out infinite;
+  }
+  .title-logo h1 {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(2.4rem, 8vw, 5.5rem);
+    color: var(--jungle-yellow);
+    text-shadow: 0 0 30px #ffd60088, 4px 4px 0 #5a3e00, 0 0 60px #ff8f0066;
+    letter-spacing: 2px;
+    line-height: 1;
+  }
+  .title-logo .sub {
+    font-family: 'Boogaloo', cursive;
+    font-size: clamp(1rem, 3.5vw, 2rem);
+    color: var(--jungle-lime);
+    text-shadow: 0 2px 8px #000;
+    letter-spacing: 4px;
+    margin-top: 6px;
+  }
+  @keyframes floatLogo {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-14px); }
+  }
 
-        .game-subtitle {
-            font-size: 1rem;
-            color: #fff;
-            background: rgba(85, 107, 47, 0.85);
-            padding: 6px 16px;
-            border-radius: 20px;
-            margin-top: 15px;
-            font-weight: bold;
-            letter-spacing: 1px;
-            border: 2px solid #fff;
-        }
+  .jungle-scene {
+    position: relative;
+    width: min(480px, 90vw);
+    height: 160px;
+    margin-bottom: 28px;
+    overflow: hidden;
+  }
+  .jungle-scene canvas { width: 100%; height: 100%; }
 
-        .btn {
-            background: linear-gradient(135deg, #8b5a2b, #4a2e1b);
-            color: #fff;
-            border: 3px solid #d2b48c;
-            padding: 14px 40px;
-            font-size: 1.4rem;
-            font-weight: bold;
-            border-radius: 30px;
-            cursor: pointer;
-            box-shadow: 0 6px 0 #2a1a0f, 0 10px 20px rgba(0,0,0,0.4);
-            transition: all 0.1s ease;
-            margin-top: auto;
-            margin-bottom: 60px;
-            text-transform: uppercase;
-        }
+  .btn-play {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(1.2rem, 4vw, 1.8rem);
+    padding: 16px 60px;
+    background: linear-gradient(135deg, #4caf50, #2e7d32);
+    color: #fff;
+    border: none;
+    border-radius: 50px;
+    cursor: pointer;
+    box-shadow: 0 6px 0 #1b5e20, 0 0 30px #4caf5066;
+    transition: transform .12s, box-shadow .12s;
+    letter-spacing: 2px;
+    text-shadow: 0 2px 4px #000a;
+    animation: pulsBtn 2s ease-in-out infinite;
+  }
+  .btn-play:active { transform: translateY(4px); box-shadow: 0 2px 0 #1b5e20; }
+  @keyframes pulsBtn {
+    0%,100% { box-shadow: 0 6px 0 #1b5e20, 0 0 30px #4caf5066; }
+    50% { box-shadow: 0 6px 0 #1b5e20, 0 0 50px #8bc34a99; }
+  }
 
-        .btn:active {
-            transform: translateY(4px);
-            box-shadow: 0 2px 0 #2a1a0f, 0 4px 10px rgba(0,0,0,0.4);
-        }
+  .jungle-deco {
+    margin-top: 24px;
+    font-family: 'Boogaloo', cursive;
+    color: #8bc34a99;
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+  }
 
-        /* --- HUD --- */
-        #hud {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            right: 15px;
-            display: flex;
-            justify-content: space-between;
-            z-index: 20;
-        }
+  /* ── GAME SCREEN ── */
+  #gameScreen { background: transparent; }
 
-        .hud-item {
-            background: rgba(62, 39, 35, 0.85);
-            color: #fff;
-            padding: 8px 16px;
-            border-radius: 12px;
-            border: 2px solid #d2b48c;
-            font-weight: bold;
-            font-size: 0.95rem;
-        }
+  /* HUD */
+  #hud {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 60px;
+    display: flex; align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    background: linear-gradient(180deg, rgba(7,20,8,.92) 0%, transparent 100%);
+    z-index: 40;
+    gap: 8px;
+  }
+  .hud-box {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(0,0,0,.45);
+    border: 1.5px solid #4caf5055;
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(0.85rem, 2.5vw, 1.1rem);
+    color: #fff;
+    white-space: nowrap;
+  }
+  .hud-icon { font-size: 1.2em; }
+  #stageLabel { color: var(--jungle-lime); }
+  #diamondCount { color: var(--diamond); text-shadow: 0 0 10px #00e5ff88; }
+  #livesDisplay { color: #ff5252; }
 
-        /* --- ENVIRONMENT / PARALLAX --- */
-        .environment {
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            top: 0;
-            left: 0;
-            pointer-events: none;
-        }
+  /* STAGE BANNER */
+  #stageBanner {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%) scale(0);
+    background: linear-gradient(135deg, #1a3a1c, #2d6a2f);
+    border: 3px solid var(--jungle-yellow);
+    border-radius: 20px;
+    padding: 24px 48px;
+    text-align: center;
+    z-index: 60;
+    box-shadow: 0 0 60px #ffd60066;
+    transition: transform .4s cubic-bezier(.34,1.56,.64,1);
+  }
+  #stageBanner.show { transform: translate(-50%,-50%) scale(1); }
+  #stageBanner h2 {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(1.6rem, 5vw, 3rem);
+    color: var(--jungle-yellow);
+    text-shadow: 0 0 20px #ffd600aa;
+  }
+  #stageBanner p {
+    font-family: 'Boogaloo', cursive;
+    font-size: clamp(1rem, 3vw, 1.6rem);
+    color: var(--jungle-lime);
+    margin-top: 6px;
+  }
 
-        .layer {
-            position: absolute;
-            width: 200%;
-            bottom: 0;
-            left: 0;
-            background-repeat: repeat-x;
-            background-position: bottom left;
-        }
+  /* FLASH NUMBER OVERLAY */
+  #flashOverlay {
+    position: absolute;
+    inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    z-index: 50;
+    pointer-events: none;
+  }
+  #flashBox {
+    background: var(--flash-bg);
+    border-radius: 24px;
+    padding: clamp(20px,4vw,50px) clamp(40px,8vw,120px);
+    box-shadow: 0 0 80px #ffd60066, 0 20px 60px #0008;
+    text-align: center;
+    border: 4px solid var(--jungle-yellow);
+    transform: scale(0);
+    transition: transform .22s cubic-bezier(.34,1.56,.64,1);
+  }
+  #flashBox.show { transform: scale(1); }
+  #flashNumber {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(3rem, 14vw, 9rem);
+    color: var(--text-dark);
+    line-height: 1;
+    text-shadow: 4px 4px 0 rgba(0,0,0,.12);
+  }
+  #flashOp {
+    font-family: 'Boogaloo', cursive;
+    font-size: clamp(1.6rem, 5vw, 3.5rem);
+    color: var(--jungle-green);
+    margin-top: 4px;
+  }
 
-        /* SVG Procedural Background Elements */
-        .bg-clouds {
-            height: 40%;
-            top: 15%;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='40' viewBox='0 0 100 40'%3E%3Cpath d='M20 30c0-5.5 4.5-10 10-10 1.5 0 3 .3 4.4.9C36.6 16.5 40.5 14 45 14c6.1 0 11.1 4.5 11.9 10.3 1.3-.8 2.8-1.3 4.5-1.3 4.4 0 8 3.6 8 8 0 .4 0 .9-.1 1.3H20v-.3z' fill='%23ffffff' fill-opacity='0.25'/%3E%3C/svg%3E");
-            animation: moveBg 40s linear infinite;
-        }
+  /* ANSWER PANEL */
+  #answerPanel {
+    position: absolute;
+    bottom: clamp(16px, 4vh, 40px);
+    left: 50%; transform: translateX(-50%);
+    z-index: 50;
+    display: flex; flex-direction: column;
+    align-items: center; gap: 14px;
+    width: min(380px, 92vw);
+    opacity: 0; pointer-events: none;
+    transition: opacity .35s;
+  }
+  #answerPanel.show { opacity: 1; pointer-events: all; }
 
-        .bg-mountains {
-            height: 35%;
-            bottom: 25%;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='100' viewBox='0 0 200 100'%3E%3Cpolygon points='0,100 40,40 90,80 140,20 200,100' fill='%238c9e5c'/%3E%3C/svg%3E");
-            background-size: 300px 100%;
-            animation: moveBg 20s linear infinite;
-        }
+  #answerPrompt {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(1rem, 3.5vw, 1.6rem);
+    color: #fff;
+    text-shadow: 0 2px 8px #000;
+    text-align: center;
+    line-height: 1.3;
+  }
+  #answerPrompt .eq-line {
+    color: var(--jungle-yellow);
+    font-size: 1.2em;
+  }
 
-        .bg-trees {
-            height: 30%;
-            bottom: 20%;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='150' height='100' viewBox='0 0 150 100'%3E%3Cpath d='M30,100 L30,70 L10,70 L25,40 L15,40 L35,10 L55,40 L45,40 L60,70 L40,70 L40,100 Z' fill='%23445826'/%3E%3Ccircle cx='110' cy='60' r='25' fill='%235c7538'/%3E%3Crect x='106' y='80' width='8' height='20' fill='%233e2723'/%3E%3C/svg%3E");
-            background-size: 200px 100%;
-            animation: moveBg 8s linear infinite;
-        }
+  .numpad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    width: 100%;
+  }
+  .numpad .key {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(1.3rem, 4vw, 2rem);
+    padding: clamp(12px, 2.5vh, 22px) 0;
+    background: linear-gradient(135deg, #2d6a2f, #1a3a1c);
+    color: #fff;
+    border: 2px solid #4caf5077;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: background .1s, transform .1s, box-shadow .1s;
+    text-align: center;
+    box-shadow: 0 4px 0 #0d1f0f;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .numpad .key:active, .numpad .key.pressed {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #0d1f0f;
+    background: linear-gradient(135deg, #4caf50, #2e7d32);
+  }
+  .numpad .key.del-key {
+    background: linear-gradient(135deg, #7b1fa2, #4a148c);
+    border-color: #ce93d877;
+  }
+  .numpad .key.ok-key {
+    background: linear-gradient(135deg, #f57f17, #e65100);
+    border-color: #ffcc0277;
+    grid-column: span 2;
+    box-shadow: 0 4px 0 #bf360c, 0 0 20px #ff8f0055;
+  }
 
-        .floor {
-            height: 22%;
-            width: 100%;
-            position: absolute;
-            bottom: 0;
-            background: linear-gradient(to bottom, #c2a673 0%, #8b6c3c 100%);
-            border-top: 6px solid #556B2F;
-            z-index: 2;
-        }
+  #answerDisplay {
+    width: 100%;
+    background: rgba(0,0,0,.6);
+    border: 2.5px solid #ffd600aa;
+    border-radius: 16px;
+    padding: 12px 20px;
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(1.8rem, 6vw, 3rem);
+    color: var(--jungle-yellow);
+    text-align: center;
+    letter-spacing: 4px;
+    min-height: 60px;
+    text-shadow: 0 0 10px #ffd60088;
+  }
 
-        .pathway {
-            position: absolute;
-            width: 100%;
-            height: 60px;
-            bottom: 20px;
-            background: rgba(0,0,0,0.08);
-            transform: perspective(200px) rotateX(20deg);
-            z-index: 3;
-        }
+  /* FEEDBACK */
+  #feedback {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%,-50%);
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(2rem, 8vw, 5rem);
+    pointer-events: none;
+    z-index: 70;
+    opacity: 0;
+    text-shadow: 0 0 30px currentColor;
+  }
+  #feedback.correct { color: #76ff03; }
+  #feedback.wrong { color: #ff1744; }
+  @keyframes feedPop {
+    0% { opacity:0; transform: translate(-50%,-50%) scale(.5); }
+    20% { opacity:1; transform: translate(-50%,-70%) scale(1.2); }
+    80% { opacity:1; transform: translate(-50%,-80%) scale(1); }
+    100% { opacity:0; transform: translate(-50%,-100%) scale(.8); }
+  }
 
-        /* --- CHARACTER ANIMATION --- */
-        #player {
-            position: absolute;
-            bottom: 35px;
-            left: 60px;
-            width: 65px;
-            height: 90px;
-            z-index: 5;
-            transition: transform 0.2s ease;
-        }
+  /* DIAMONDS RAIN */
+  .diamond-particle {
+    position: absolute;
+    font-size: clamp(1.2rem, 3vw, 2rem);
+    z-index: 65;
+    pointer-events: none;
+    animation: diamondFall 1.4s ease-out forwards;
+  }
+  @keyframes diamondFall {
+    0% { opacity:1; transform: translateY(0) scale(1) rotate(0deg); }
+    100% { opacity:0; transform: translateY(-140px) scale(.4) rotate(360deg); }
+  }
 
-        /* Styled CSS Boy Character */
-        .boy-head {
-            width: 28px;
-            height: 28px;
-            background: #ffdbac;
-            border-radius: 50%;
-            position: absolute;
-            top: 0;
-            left: 18px;
-            box-shadow: inset -2px -2px 0 rgba(0,0,0,0.1);
-        }
-        .boy-hair {
-            width: 32px;
-            height: 16px;
-            background: #4a2e1b;
-            border-radius: 16px 16px 0 0;
-            position: absolute;
-            top: -3px;
-            left: 16px;
-        }
-        .boy-body {
-            width: 26px;
-            height: 38px;
-            background: #29b6f6; /* Cyan shirt matching reference */
-            border-radius: 6px;
-            position: absolute;
-            top: 26px;
-            left: 19px;
-        }
-        .boy-backpack {
-            width: 12px;
-            height: 28px;
-            background: #5d4037;
-            border-radius: 4px;
-            position: absolute;
-            top: 30px;
-            left: 10px;
-        }
-        .boy-legs {
-            width: 24px;
-            height: 16px;
-            background: #795548; /* Shorts */
-            position: absolute;
-            top: 62px;
-            left: 20px;
-            border-radius: 0 0 4px 4px;
-        }
-        .leg {
-            width: 8px;
-            height: 22px;
-            background: #ffdbac;
-            position: absolute;
-            top: 74px;
-            transform-origin: top center;
-        }
-        .leg-left { left: 21px; animation: runCycle 0.5s infinite alternate; }
-        .leg-right { left: 35px; animation: runCycle 0.5s infinite alternate-reverse; }
-        
-        .boot {
-            width: 14px;
-            height: 10px;
-            background: #3e2723;
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            border-radius: 4px 6px 2px 2px;
-        }
+  /* GAME CANVAS */
+  #gameCanvas {
+    position: absolute;
+    inset: 0;
+    width: 100%; height: 100%;
+  }
 
-        @keyframes runCycle {
-            0% { transform: rotate(-25deg); }
-            100% { transform: rotate(25deg); }
-        }
+  /* WIN / GAMEOVER */
+  #endScreen {
+    background: radial-gradient(ellipse at center, #0d2b10 0%, #071408 70%);
+  }
+  #endTitle {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(2rem, 8vw, 4.5rem);
+    text-align: center;
+    margin-bottom: 12px;
+    text-shadow: 0 0 40px currentColor;
+  }
+  #endMsg {
+    font-family: 'Boogaloo', cursive;
+    font-size: clamp(1rem, 3vw, 1.8rem);
+    color: #a5d6a7;
+    text-align: center;
+    margin-bottom: 30px;
+  }
+  #endDiamonds {
+    font-family: 'Fredoka One', cursive;
+    font-size: clamp(1.2rem, 4vw, 2.2rem);
+    color: var(--diamond);
+    text-shadow: 0 0 20px #00e5ff;
+    margin-bottom: 36px;
+    text-align: center;
+  }
 
-        @keyframes moveBg {
-            0% { transform: translateX(0); }
-            100% { transform: translateX(-50%); }
-        }
+  /* PROGRESS BAR */
+  #progressBar {
+    position: absolute;
+    top: 60px; left: 0; right: 0;
+    height: 6px;
+    background: rgba(255,255,255,.08);
+    z-index: 40;
+  }
+  #progressFill {
+    height: 100%;
+    background: linear-gradient(90deg, #4caf50, #ffd600);
+    width: 0%;
+    transition: width .6s ease;
+    box-shadow: 0 0 10px #ffd60099;
+  }
 
-        /* --- ANZAN DISPLAY FLASH --- */
-        #display-box {
-            margin-top: 140px;
-            width: 240px;
-            height: 140px;
-            background: rgba(42, 26, 15, 0.9);
-            border: 4px solid #d2b48c;
-            border-radius: 20px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.6);
-            z-index: 15;
-            position: relative;
-        }
+  /* TIMER BAR */
+  #timerBar {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 5px;
+    background: rgba(255,255,255,.06);
+    z-index: 40;
+    display: none;
+  }
+  #timerFill {
+    height: 100%;
+    background: linear-gradient(90deg, #4caf50, #ffd600, #ff5252);
+    transition: width linear;
+    box-shadow: 0 0 10px currentColor;
+  }
 
-        #number-flash {
-            font-size: 3.8rem;
-            font-weight: 900;
-            transition: transform 0.05s ease;
-        }
-
-        .state-plus {
-            color: var(--neon-plus);
-            text-shadow: 0 0 15px var(--neon-plus), 0 0 30px var(--neon-plus);
-        }
-
-        .state-minus {
-            color: var(--neon-minus);
-            text-shadow: 0 0 15px var(--neon-minus), 0 0 30px var(--neon-minus);
-        }
-
-        /* --- INTERACTIVE INPUT INTERFACE --- */
-        #input-panel {
-            position: absolute;
-            bottom: 40px;
-            width: 85%;
-            background: rgba(62, 39, 35, 0.95);
-            border: 3px solid #d2b48c;
-            border-radius: 16px;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            box-shadow: 0 15px 30px rgba(0,0,0,0.5);
-            z-index: 25;
-        }
-
-        #answer-input {
-            width: 100%;
-            background: #22120c;
-            border: 2px solid #a67c52;
-            border-radius: 8px;
-            color: #fff;
-            font-size: 2rem;
-            text-align: center;
-            padding: 8px;
-            margin-bottom: 12px;
-            font-weight: bold;
-            outline: none;
-        }
-
-        #answer-input:focus {
-            border-color: var(--neon-plus);
-        }
-
-        .num-pad {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            width: 100%;
-            margin-bottom: 10px;
-        }
-
-        .key {
-            background: #5d4037;
-            border: 2px solid #8d6e63;
-            color: white;
-            padding: 10px;
-            font-size: 1.25rem;
-            font-weight: bold;
-            border-radius: 8px;
-            cursor: pointer;
-        }
-
-        .key:active {
-            background: #8d6e63;
-        }
-
-        /* --- UTILITY STYLES --- */
-        .stage-banner {
-            font-size: 1.8rem;
-            color: #fff;
-            font-weight: 800;
-            background: linear-gradient(90deg, transparent, rgba(0,0,0,0.4), transparent);
-            width: 100%;
-            padding: 5px;
-            margin-top: 10px;
-        }
-
-        .status-msg {
-            font-size: 2rem;
-            font-weight: 900;
-            color: #fff;
-            margin-top: 40px;
-            text-shadow: 0 4px 10px rgba(0,0,0,0.5);
-        }
-    </style>
+  /* RESPONSIVE TWEAKS */
+  @media (max-width: 480px) {
+    #hud { height: 50px; padding: 0 8px; }
+    .hud-box { padding: 4px 10px; font-size: .78rem; }
+  }
+</style>
 </head>
 <body>
+<div id="gameWrapper">
 
-    <div id="game-container">
-        
-        <!-- HUD Statistics Layer -->
-        <div id="hud" class="hidden">
-            <div class="hud-item" id="hud-stage">STAGE: 1 / 50</div>
-            <div class="hud-item" id="hud-score">SCORE: 0</div>
-        </div>
+  <!-- BACKGROUND CANVAS -->
+  <canvas id="bg"></canvas>
 
-        <!-- Parallax Animated Environment -->
-        <div class="environment">
-            <div class="layer bg-clouds" id="layer-clouds"></div>
-            <div class="layer bg-mountains" id="layer-mountains"></div>
-            <div class="layer bg-trees" id="layer-trees"></div>
-            <div class="floor"></div>
-            <div class="pathway"></div>
-        </div>
+  <!-- ═══════════ TITLE SCREEN ═══════════ -->
+  <div class="screen" id="titleScreen">
+    <div class="title-logo">
+      <h1>🌿 ZED Flash Anzan 🌿</h1>
+      <div class="sub">⚡ JUNGLE RUN ⚡</div>
+    </div>
+    <div class="jungle-scene">
+      <canvas id="previewCanvas"></canvas>
+    </div>
+    <button class="btn-play" id="btnPlay">▶ PLAY NOW</button>
+    <div class="jungle-deco">50 STAGES · DIAMONDS · FLASH MATH</div>
+  </div>
 
-        <!-- Boy Runner Character Model -->
-        <div id="player" class="hidden">
-            <div class="boy-hair"></div>
-            <div class="boy-backpack"></div>
-            <div class="boy-head"></div>
-            <div class="boy-body"></div>
-            <div class="boy-legs"></div>
-            <div class="leg leg-left"><div class="boot"></div></div>
-            <div class="leg leg-right"><div class="boot"></div></div>
-        </div>
+  <!-- ═══════════ GAME SCREEN ═══════════ -->
+  <div class="screen hidden" id="gameScreen">
+    <canvas id="gameCanvas"></canvas>
 
-        <!-- MENU SCREEN -->
-        <div id="screen-menu" class="screen">
-            <h1 class="game-title">3D ZED<br>Flash Anzan</h1>
-            <div class="game-subtitle">JUNGLE SAVANNA ADVENTURE</div>
-            <button class="btn" onclick="startGame()">Start Quest</button>
-        </div>
+    <div id="hud">
+      <div class="hud-box"><span class="hud-icon">🌿</span> Stage <span id="stageLabel">1</span>/50</div>
+      <div class="hud-box"><span class="hud-icon">💎</span> <span id="diamondCount">0</span></div>
+      <div class="hud-box"><span class="hud-icon">❤️</span> <span id="livesDisplay">3</span></div>
+    </div>
+    <div id="progressBar"><div id="progressFill"></div></div>
+    <div id="timerBar"><div id="timerFill"></div></div>
 
-        <!-- FLASH RUNNER SCREEN -->
-        <div id="screen-game" class="screen hidden">
-            <div class="stage-banner" id="stage-banner-txt">STAGE 1</div>
-            <div id="display-box">
-                <div id="number-flash" class="state-plus">---</div>
-            </div>
-        </div>
-
-        <!-- INPUT RESPOND SCREEN -->
-        <div id="screen-input" class="screen hidden">
-            <div class="status-msg" style="margin-top: 80px; color: #ffd27f;">ENTER VALUE</div>
-            
-            <div id="input-panel">
-                <input type="number" id="answer-input" readonly placeholder="?">
-                <div class="num-pad">
-                    <button class="key" onclick="pressKey('1')">1</button>
-                    <button class="key" onclick="pressKey('2')">2</button>
-                    <button class="key" onclick="pressKey('3')">3</button>
-                    <button class="key" onclick="pressKey('4')">4</button>
-                    <button class="key" onclick="pressKey('5')">5</button>
-                    <button class="key" onclick="pressKey('6')">6</button>
-                    <button class="key" onclick="pressKey('7')">7</button>
-                    <button class="key" onclick="pressKey('8')">8</button>
-                    <button class="key" onclick="pressKey('9')">9</button>
-                    <button class="key" style="background:#c62828;" onclick="pressKey('C')">C</button>
-                    <button class="key" onclick="pressKey('0')">0</button>
-                    <button class="key" onclick="pressKey('-')">-</button>
-                </div>
-                <button class="btn" style="margin: 5px 0 0 0; width:100%; padding:10px;" onclick="submitAnswer()">Submit</button>
-            </div>
-        </div>
-
-        <!-- ENDGAME GAME OVER / WIN SCREEN -->
-        <div id="screen-over" class="screen hidden">
-            <h1 class="game-title" id="over-title">GAME OVER</h1>
-            <div class="status-msg" id="over-msg">You stumbled!</div>
-            <button class="btn" id="over-btn" onclick="returnToMenu()">Try Again</button>
-        </div>
-
+    <div id="stageBanner">
+      <h2 id="bannerTitle">Stage 1</h2>
+      <p id="bannerSub">Get ready!</p>
     </div>
 
-    <script>
-        // Game State Variables
-        let currentStage = 1;
-        let runningScore = 0;
-        let stageFormula = [];
-        let correctAnswer = 0;
-        let animationSpeed = 1;
+    <div id="flashOverlay">
+      <div id="flashBox">
+        <div id="flashNumber">7</div>
+        <div id="flashOp">+ 3</div>
+      </div>
+    </div>
 
-        // Configuration Arrays for progressive scaling across 50 stages
-        // Format: [numberOfOperations, digitsMax]
-        function getStageConfig(stage) {
-            if (stage <= 10) return { ops: 4 + Math.floor(stage/3), digits: 1, speed: 700 - (stage * 20) }; // single digit scaling lengths
-            if (stage <= 30) return { ops: 5 + Math.floor(stage/6), digits: 2, speed: 600 - (stage * 8) };  // double digit mixes
-            if (stage <= 50) return { ops: 6 + Math.floor(stage/8), digits: 3, speed: 450 - (stage * 4) };  // triple digit legends
-            return { ops: 8, digits: 3, speed: 300 };
-        }
+    <div id="answerPanel">
+      <div id="answerPrompt"></div>
+      <div id="answerDisplay">_</div>
+      <div class="numpad" id="numpad"></div>
+    </div>
 
-        // Setup DOM Hooks
-        const layers = [
-            document.getElementById('layer-clouds'),
-            document.getElementById('layer-mountains'),
-            document.getElementById('layer-trees')
-        ];
-        const player = document.getElementById('player');
-        const numFlash = document.getElementById('number-flash');
-        const answerInput = document.getElementById('answer-input');
+    <div id="feedback"></div>
+  </div>
 
-        function setParallaxSpeed(multiplier) {
-            layers[0].style.animationDuration = `${40 / multiplier}s`;
-            layers[1].style.animationDuration = `${20 / multiplier}s`;
-            layers[2].style.animationDuration = `${8 / multiplier}s`;
-            
-            // Adjust running legs animation timing dynamically
-            const legs = document.querySelectorAll('.leg');
-            legs.forEach(leg => {
-                leg.style.animationDuration = `${0.6 / multiplier}s`;
-            });
-        }
+  <!-- ═══════════ END SCREEN ═══════════ -->
+  <div class="screen hidden" id="endScreen">
+    <div id="endTitle">🏆 YOU WIN!</div>
+    <div id="endMsg">All 50 stages conquered!</div>
+    <div id="endDiamonds">💎 Diamonds: <span id="finalDiamonds">0</span></div>
+    <button class="btn-play" id="btnRestart">🔄 Play Again</button>
+  </div>
 
-        function showScreen(screenId) {
-            document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
-            document.getElementById(screenId).classList.remove('hidden');
-        }
+</div>
 
-        function startGame() {
-            currentStage = 1;
-            runningScore = 0;
-            document.getElementById('hud').classList.remove('hidden');
-            player.classList.remove('hidden');
-            initiateStage();
-        }
+<script>
+/* ═══════════════════════════════════════════════════
+   ZED FLASH ANZAN – JUNGLE RUN
+   Full game engine
+═══════════════════════════════════════════════════ */
 
-        function initiateStage() {
-            document.getElementById('hud-stage').innerText = `STAGE: ${currentStage} / 50`;
-            document.getElementById('hud-score').innerText = `SCORE: ${runningScore}`;
-            document.getElementById('stage-banner-txt').innerText = `STAGE ${currentStage}`;
-            answerInput.value = '';
-            
-            const config = getStageConfig(currentStage);
-            generateAnzanFormula(config.ops, config.digits);
-            
-            showScreen('screen-game');
-            setParallaxSpeed(2.0); // Sprint processing speed
-            
-            setTimeout(() => {
-                executeFlashSequence(config.speed);
-            }, 1200);
-        }
+// ── UTIL ──
+const $ = id => document.getElementById(id);
+const rnd = (a,b) => Math.floor(Math.random()*(b-a+1))+a;
+const clamp = (v,lo,hi) => Math.max(lo, Math.min(hi, v));
 
-        function generateAnzanFormula(operationsCount, digitType) {
-            stageFormula = [];
-            let maxVal = Math.pow(10, digitType) - 1;
-            let minVal = Math.pow(10, digitType - 1);
-            if(digitType === 1) minVal = 1; // Correct lower bound for single digits
+// ── STATE ──
+const G = {
+  stage: 1,
+  diamonds: 0,
+  lives: 3,
+  answer: '',
+  ops: [],          // [{num, op}]
+  correctResult: 0,
+  flashIdx: 0,
+  phase: 'idle',    // banner|flashing|answering|feedback
+  running: false,
+};
 
-            // First number always positive seed
-            let runningTotal = Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
-            stageFormula.push(runningTotal);
+// ── STAGE CONFIG ──
+function stageConfig(s) {
+  // count: how many numbers flash
+  // max: max number in operation
+  // speed: ms each flash shown
+  const count  = Math.min(2 + Math.floor((s-1)/5), 10);
+  const maxN   = Math.min(10 + (s-1)*3, 99);
+  const speed  = Math.max(250, 1400 - (s-1)*22);
+  return { count, maxN, speed };
+}
 
-            for (let i = 1; i < operationsCount; i++) {
-                let nextNum = Math.floor(Math.random() * (maxVal - minVal + 1)) + minVal;
-                // Pick sign natively, avoid drop below zero running logic bounds
-                if (Math.random() > 0.45 || runningTotal - nextNum < 0) {
-                    runningTotal += nextNum;
-                    stageFormula.push(nextNum); // Positive sign implied
-                } else {
-                    runningTotal -= nextNum;
-                    stageFormula.push(-nextNum); // Negative representation
-                }
-            }
-            correctAnswer = runningTotal;
-            console.log("Stage Answer Cheat-Sheet: " + correctAnswer); // System developer check logs
-        }
+// Generate valid operations (all partial results positive)
+function generateOps(s) {
+  const { count, maxN } = stageConfig(s);
+  let ops = [];
+  let running = rnd(1, maxN);
+  const first = running;
+  for (let i = 0; i < count-1; i++) {
+    let op = Math.random() < 0.5 ? '+' : '-';
+    let num;
+    if (op === '-') {
+      if (running <= 1) op = '+';
+    }
+    if (op === '+') {
+      num = rnd(1, Math.max(1, maxN - running));
+      running += num;
+    } else {
+      num = rnd(1, running - 1);
+      running -= num;
+    }
+    ops.push({ num: (i === 0 ? first : num), op: (i === 0 ? null : op) });
+  }
+  // package as pairs: first number alone, then each op+num
+  // rebuild properly
+  ops = [];
+  running = rnd(1, maxN);
+  ops.push({ num: running, op: null });
+  for (let i = 1; i < count; i++) {
+    let op = Math.random() < 0.5 ? '+' : '-';
+    let num;
+    if (op === '-' && running <= 1) op = '+';
+    if (op === '+') {
+      num = rnd(1, Math.max(1, maxN - running));
+      running += num;
+    } else {
+      num = rnd(1, running - 1);
+      running -= num;
+    }
+    ops.push({ num, op });
+  }
+  return { ops, result: running };
+}
 
-        function executeFlashSequence(speedDelay) {
-            let index = 0;
+// ── DOM REFS ──
+const titleScreen   = $('titleScreen');
+const gameScreen    = $('gameScreen');
+const endScreen     = $('endScreen');
+const stageBanner   = $('stageBanner');
+const flashBox      = $('flashBox');
+const flashNumber   = $('flashNumber');
+const flashOp       = $('flashOp');
+const answerPanel   = $('answerPanel');
+const answerDisplay = $('answerDisplay');
+const answerPrompt  = $('answerPrompt');
+const feedback      = $('feedback');
+const stageLabel    = $('stageLabel');
+const diamondCount  = $('diamondCount');
+const livesDisplay  = $('livesDisplay');
+const progressFill  = $('progressFill');
+const numpad        = $('numpad');
 
-            function runInterval() {
-                if (index < stageFormula.length) {
-                    let val = stageFormula[index];
-                    
-                    // Flash off quickly before showing next element
-                    numFlash.innerText = '';
-                    numFlash.className = '';
-                    
-                    setTimeout(() => {
-                        if (val >= 0) {
-                            numFlash.innerText = index === 0 ? `${val}` : `+${val}`;
-                            numFlash.className = 'state-plus';
-                        } else {
-                            numFlash.innerText = `${val}`; // Already contains '-' sign
-                            numFlash.className = 'state-minus';
-                        }
-                        
-                        // Mild 3D bounce scale punch
-                        numFlash.style.transform = "scale(1.15)";
-                        setTimeout(() => numFlash.style.transform = "scale(1.0)", 80);
-                        
-                        index++;
-                        setTimeout(runInterval, speedDelay);
-                    }, 60); 
-                } else {
-                    // Sequence evaluation finished
-                    setTimeout(() => {
-                        setParallaxSpeed(0.4); // Slow down pace down during answer phase
-                        showScreen('screen-input');
-                    }, 800);
-                }
-            }
-            runInterval();
-        }
+// ── BUILD NUMPAD ──
+function buildNumpad() {
+  numpad.innerHTML = '';
+  [7,8,9,4,5,6,1,2,3].forEach(n => {
+    const k = document.createElement('div');
+    k.className = 'key'; k.textContent = n;
+    k.addEventListener('pointerdown', () => pressKey(String(n)));
+    numpad.appendChild(k);
+  });
+  const del = document.createElement('div');
+  del.className = 'key del-key'; del.textContent = '⌫';
+  del.addEventListener('pointerdown', () => pressKey('del'));
+  numpad.appendChild(del);
+  const z = document.createElement('div');
+  z.className = 'key'; z.textContent = '0';
+  z.addEventListener('pointerdown', () => pressKey('0'));
+  numpad.appendChild(z);
+  const ok = document.createElement('div');
+  ok.className = 'key ok-key'; ok.textContent = '✓ OK';
+  ok.addEventListener('pointerdown', () => pressKey('ok'));
+  numpad.appendChild(ok);
+}
 
-        // Handle Custom Onscreen Keypad Presses
-        function pressKey(char) {
-            if (char === 'C') {
-                answerInput.value = '';
-            } else if (char === '-') {
-                if (!answerInput.value.includes('-') && answerInput.value === '') {
-                    answerInput.value = '-';
-                }
-            } else {
-                if (answerInput.value === '-') {
-                    answerInput.value = '-' + char;
-                } else {
-                    answerInput.value += char;
-                }
-            }
-        }
+// Keyboard support
+document.addEventListener('keydown', e => {
+  if (!G.running) return;
+  if (G.phase !== 'answering') return;
+  if (e.key >= '0' && e.key <= '9') pressKey(e.key);
+  else if (e.key === 'Backspace') pressKey('del');
+  else if (e.key === 'Enter') pressKey('ok');
+});
 
-        function submitAnswer() {
-            let playerInput = parseInt(answerInput.value);
-            
-            if (playerInput === correctAnswer) {
-                // Correct processing state mechanics
-                runningScore += currentStage * 100;
-                if (currentStage >= 50) {
-                    endGame(true);
-                } else {
-                    currentStage++;
-                    initiateStage();
-                }
-            } else {
-                // Mistake state processing 
-                endGame(false);
-            }
-        }
+function pressKey(k) {
+  if (G.phase !== 'answering') return;
+  if (k === 'del') {
+    G.answer = G.answer.slice(0,-1);
+  } else if (k === 'ok') {
+    submitAnswer();
+    return;
+  } else {
+    if (G.answer.length >= 4) return;
+    G.answer += k;
+  }
+  answerDisplay.textContent = G.answer || '_';
+}
 
-        function endGame(isWin) {
-            document.getElementById('hud').classList.add('hidden');
-            player.classList.add('hidden');
-            setParallaxSpeed(0);
-            showScreen('screen-over');
-            
-            const title = document.getElementById('over-title');
-            const msg = document.getElementById('over-msg');
-            const btn = document.getElementById('over-btn');
+// ── SCREENS ──
+function showScreen(id) {
+  [titleScreen, gameScreen, endScreen].forEach(s => s.classList.add('hidden'));
+  $(id).classList.remove('hidden');
+}
 
-            if (isWin) {
-                title.innerText = "VICTORY!";
-                title.style.color = "var(--neon-plus)";
-                msg.innerText = `Sensational math precision!\nFinal Score: ${runningScore}`;
-                btn.innerText = "Conquer Again";
-            } else {
-                title.innerText = "GAME OVER";
-                title.style.color = "var(--neon-minus)";
-                msg.innerText = `Calculation error!\nCorrect answer was: ${correctAnswer}\nStaged Reached: ${currentStage}`;
-                btn.innerText = "Restart Run";
-            }
-        }
+// ── GAME FLOW ──
+function startGame() {
+  G.stage = 1; G.diamonds = 0; G.lives = 3; G.running = true;
+  updateHUD();
+  buildNumpad();
+  showScreen('gameScreen');
+  startStage();
+}
 
-        function returnToMenu() {
-            showScreen('screen-menu');
-        }
-    </script>
+function startStage() {
+  G.phase = 'banner';
+  const cfg = stageConfig(G.stage);
+  const { ops, result } = generateOps(G.stage);
+  G.ops = ops; G.correctResult = result; G.flashIdx = 0; G.answer = '';
+  stageLabel.textContent = G.stage;
+  progressFill.style.width = ((G.stage-1)/50*100) + '%';
+  answerPanel.classList.remove('show');
+  flashBox.classList.remove('show');
+
+  // Banner
+  $('bannerTitle').textContent = `Stage ${G.stage}`;
+  $('bannerSub').textContent = `${cfg.count} numbers · ${cfg.speed}ms flash`;
+  stageBanner.classList.add('show');
+
+  // Boy runs during banner
+  boy.running = true;
+  setTimeout(() => {
+    stageBanner.classList.remove('show');
+    setTimeout(() => startFlashing(), 300);
+  }, 1800);
+}
+
+let flashTimer = null;
+function startFlashing() {
+  G.phase = 'flashing';
+  const { speed } = stageConfig(G.stage);
+  showFlash(0, speed);
+}
+
+function showFlash(idx, speed) {
+  if (!G.running) return;
+  const op = G.ops[idx];
+  flashNumber.textContent = op.num;
+  flashOp.textContent = op.op ? op.op : '';
+  flashBox.classList.add('show');
+
+  // Shake effect
+  flashBox.style.animation = 'none';
+  setTimeout(() => flashBox.style.animation = '', 10);
+
+  flashTimer = setTimeout(() => {
+    flashBox.classList.remove('show');
+    setTimeout(() => {
+      if (idx + 1 < G.ops.length) {
+        showFlash(idx+1, speed);
+      } else {
+        // All flashed → show answer
+        setTimeout(() => showAnswer(), 200);
+      }
+    }, 80);
+  }, speed);
+}
+
+function showAnswer() {
+  G.phase = 'answering';
+  G.answer = '';
+  answerDisplay.textContent = '_';
+
+  // Build prompt showing the operation sequence
+  const parts = G.ops.map((o,i) => {
+    if (i === 0) return `<span>${o.num}</span>`;
+    return `<span>${o.op} ${o.num}</span>`;
+  });
+  answerPrompt.innerHTML = `<div>${parts.join(' ')}</div><div class="eq-line">= ?</div>`;
+  answerPanel.classList.add('show');
+}
+
+function submitAnswer() {
+  if (!G.answer) return;
+  const val = parseInt(G.answer, 10);
+  if (val === G.correctResult) {
+    correctAnswer();
+  } else {
+    wrongAnswer();
+  }
+}
+
+function correctAnswer() {
+  G.diamonds++;
+  G.phase = 'feedback';
+  answerPanel.classList.remove('show');
+  showFeedback('✓ CORRECT!', 'correct');
+  spawnDiamonds();
+  updateHUD();
+
+  // Boy celebrates
+  boy.celebrating = true;
+  setTimeout(() => { boy.celebrating = false; }, 1200);
+
+  setTimeout(() => {
+    if (G.stage >= 50) {
+      endGame(true);
+    } else {
+      G.stage++;
+      startStage();
+    }
+  }, 1600);
+}
+
+function wrongAnswer() {
+  G.lives--;
+  G.phase = 'feedback';
+  answerPanel.classList.remove('show');
+  showFeedback('✗ WRONG!', 'wrong');
+  updateHUD();
+
+  // Screen shake
+  gameScreen.style.animation = 'none';
+  shakeScreen();
+
+  // Boy trips
+  boy.tripping = true;
+  setTimeout(() => { boy.tripping = false; }, 900);
+
+  setTimeout(() => {
+    if (G.lives <= 0) {
+      endGame(false);
+    } else {
+      startStage(); // retry same stage
+    }
+  }, 1500);
+}
+
+let shakeAF;
+function shakeScreen() {
+  let t = 0;
+  const shake = () => {
+    t++;
+    if (t > 16) { gameScreen.style.transform = ''; return; }
+    const x = (Math.random()-.5)*14;
+    const y = (Math.random()-.5)*8;
+    gameScreen.style.transform = `translate(${x}px,${y}px)`;
+    shakeAF = requestAnimationFrame(shake);
+  };
+  shake();
+}
+
+function showFeedback(msg, cls) {
+  feedback.textContent = msg;
+  feedback.className = cls;
+  feedback.style.animation = 'none';
+  feedback.offsetHeight;
+  feedback.style.animation = 'feedPop .9s ease forwards';
+}
+
+function updateHUD() {
+  stageLabel.textContent = G.stage;
+  diamondCount.textContent = G.diamonds;
+  livesDisplay.textContent = '❤️'.repeat(Math.max(0, G.lives));
+}
+
+function spawnDiamonds() {
+  for (let i = 0; i < 8; i++) {
+    const d = document.createElement('div');
+    d.className = 'diamond-particle';
+    d.textContent = '💎';
+    d.style.left = rnd(20, 80) + 'vw';
+    d.style.top  = rnd(30, 70) + 'vh';
+    d.style.animationDelay = rnd(0, 400) + 'ms';
+    document.getElementById('gameWrapper').appendChild(d);
+    setTimeout(() => d.remove(), 1800);
+  }
+}
+
+function endGame(won) {
+  G.running = false;
+  progressFill.style.width = won ? '100%' : progressFill.style.width;
+  $('endTitle').textContent = won ? '🏆 YOU WIN!' : '💀 GAME OVER';
+  $('endTitle').style.color = won ? '#ffd700' : '#ff1744';
+  $('endMsg').textContent = won
+    ? 'All 50 stages conquered! 🌿'
+    : `You reached Stage ${G.stage}. Try again!`;
+  $('finalDiamonds').textContent = G.diamonds;
+  setTimeout(() => showScreen('endScreen'), 600);
+}
+
+// ── JUNGLE CANVAS ENGINE ──
+const gameCanvas = $('gameCanvas');
+const gctx = gameCanvas.getContext('2d');
+const bgCanvas = $('bg');
+const bctx = bgCanvas.getContext('2d');
+
+let W, H;
+
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  gameCanvas.width = bgCanvas.width = W;
+  gameCanvas.height = bgCanvas.height = H;
+  drawBG();
+}
+window.addEventListener('resize', resize);
+
+// ── BACKGROUND LAYERS ──
+// Parallax layer definitions
+const BG_LAYERS = [];
+
+function drawBG() {
+  const c = bctx;
+  const w = bgCanvas.width, h = bgCanvas.height;
+
+  // Sky gradient
+  const sky = c.createLinearGradient(0,0,0,h*.6);
+  sky.addColorStop(0,'#07140a');
+  sky.addColorStop(1,'#1a3a1c');
+  c.fillStyle = sky;
+  c.fillRect(0,0,w,h*.6);
+
+  // Ground gradient
+  const gnd = c.createLinearGradient(0,h*.55,0,h);
+  gnd.addColorStop(0,'#1a3a1c');
+  gnd.addColorStop(1,'#0d1f0f');
+  c.fillStyle = gnd;
+  c.fillRect(0,h*.55,w,h*.45);
+
+  // Ground line
+  c.fillStyle = '#3d8b3f';
+  c.fillRect(0, h*.70, w, h*.03);
+  c.fillStyle = '#2d6a2f';
+  c.fillRect(0, h*.73, w, h*.04);
+
+  // Moonlight glow
+  c.save();
+  const glow = c.createRadialGradient(w*.75, h*.15, 0, w*.75, h*.15, 180);
+  glow.addColorStop(0,'rgba(200,230,180,.13)');
+  glow.addColorStop(1,'transparent');
+  c.fillStyle = glow;
+  c.fillRect(0,0,w,h*.5);
+  c.restore();
+
+  // Stars
+  c.save();
+  for (let i = 0; i < 80; i++) {
+    const sx = (i * 97.3 + 13) % w;
+    const sy = (i * 53.7 + 7) % (h*.55);
+    const r = .5 + (i%3)*.5;
+    c.beginPath();
+    c.arc(sx, sy, r, 0, Math.PI*2);
+    c.fillStyle = `rgba(255,255,255,${.3+.5*(i%5)/5})`;
+    c.fill();
+  }
+  c.restore();
+
+  // Fireflies
+  c.save();
+  for (let i = 0; i < 20; i++) {
+    const fx = (i*131.7+22)%w;
+    const fy = h*.4 + (i*83.3)%(h*.3);
+    const rr = c.createRadialGradient(fx,fy,0,fx,fy,6);
+    rr.addColorStop(0,'rgba(180,255,80,.55)');
+    rr.addColorStop(1,'transparent');
+    c.fillStyle = rr;
+    c.beginPath(); c.arc(fx,fy,6,0,Math.PI*2); c.fill();
+  }
+  c.restore();
+}
+
+// ── SCROLLING TREE LAYERS ──
+const treeLayers = [
+  { speed: .2, trees: [], alpha: .35, scaleY: .5, yFrac: .65, color: '#0d2b10' },
+  { speed: .5, trees: [], alpha: .6,  scaleY: .75, yFrac: .72, color: '#1a3a1c' },
+  { speed: 1.0, trees: [], alpha: .9, scaleY: 1.0, yFrac: .73, color: '#2d6a2f' },
+];
+
+function initTrees() {
+  treeLayers.forEach(layer => {
+    layer.trees = [];
+    for (let i = 0; i < 12; i++) {
+      layer.trees.push({ x: rnd(0, W), w: rnd(40,90) * layer.scaleY, h: rnd(80,160)*layer.scaleY });
+    }
+  });
+}
+
+function drawTrees(ctx, layer, dt) {
+  layer.trees.forEach(t => {
+    t.x -= layer.speed * dt * .06;
+    if (t.x < -t.w) { t.x = W + rnd(0,120); t.w = rnd(40,90)*layer.scaleY; t.h = rnd(80,160)*layer.scaleY; }
+    const gY = H * layer.yFrac;
+    ctx.save();
+    ctx.globalAlpha = layer.alpha;
+    // Trunk
+    ctx.fillStyle = layer.color;
+    ctx.fillRect(t.x + t.w*.4, gY - t.h*.35, t.w*.2, t.h*.35);
+    // Canopy (3 circles)
+    [0,.25,-.25].forEach((off,i) => {
+      const cr = t.w*.55 - i*.06*t.w;
+      const cx2 = t.x + t.w*.5 + off*t.w;
+      const cy = gY - t.h*.32 - t.h*(i===0?.52:.4);
+      ctx.beginPath();
+      ctx.arc(cx2, cy, cr, 0, Math.PI*2);
+      ctx.fillStyle = layer.color;
+      ctx.fill();
+    });
+    ctx.restore();
+  });
+}
+
+// ── GROUND DETAILS ──
+const groundDeco = [];
+function initGround() {
+  for (let i = 0; i < 20; i++) {
+    groundDeco.push({ x: rnd(0,W), type: rnd(0,2), size: rnd(12,28) });
+  }
+}
+function drawGround(ctx, dt) {
+  groundDeco.forEach(d => {
+    d.x -= 1.5 * dt * .06;
+    if (d.x < -50) { d.x = W + rnd(0,80); d.type = rnd(0,2); d.size = rnd(12,28); }
+    const gy = H * .74;
+    ctx.save();
+    ctx.globalAlpha = .7;
+    if (d.type === 0) {
+      // Bush
+      ctx.fillStyle = '#2d6a2f';
+      ctx.beginPath(); ctx.arc(d.x, gy, d.size*.7, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(d.x+d.size*.6, gy+4, d.size*.5, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(d.x-d.size*.5, gy+5, d.size*.45, 0, Math.PI*2); ctx.fill();
+    } else if (d.type === 1) {
+      // Mushroom
+      ctx.fillStyle = '#5d4037';
+      ctx.fillRect(d.x-3, gy-d.size*.5, 6, d.size*.5);
+      ctx.fillStyle = '#e53935';
+      ctx.beginPath(); ctx.arc(d.x, gy-d.size*.5, d.size*.55, Math.PI, 0); ctx.fill();
+    } else {
+      // Flower
+      ctx.fillStyle = '#ffd600';
+      for (let a = 0; a < 6; a++) {
+        const ax = d.x + Math.cos(a/6*Math.PI*2)*d.size*.35;
+        const ay = gy - d.size*.4 + Math.sin(a/6*Math.PI*2)*d.size*.35;
+        ctx.beginPath(); ctx.arc(ax,ay,d.size*.18,0,Math.PI*2); ctx.fill();
+      }
+    }
+    ctx.restore();
+  });
+}
+
+// ── BOY CHARACTER ──
+const boy = {
+  x: 0, y: 0,
+  frame: 0, frameTimer: 0, frameDur: 80,
+  running: true, celebrating: false, tripping: false,
+  scale: 1,
+};
+function initBoy() {
+  boy.x = W * .25;
+  boy.y = H * .74;
+  boy.scale = Math.min(H/600, 1.3) * 1;
+}
+
+let lastT = 0;
+function animateBoy(now) {
+  const dt = now - lastT; lastT = now;
+  boy.frameTimer += dt;
+  if (boy.frameTimer > boy.frameDur) {
+    boy.frame = (boy.frame+1) % 8;
+    boy.frameTimer = 0;
+  }
+}
+
+function drawBoy(ctx) {
+  const s = boy.scale;
+  const bx = boy.x, by = boy.y;
+  ctx.save();
+  ctx.translate(bx, by);
+
+  const f = boy.frame;
+  const run = boy.running && !boy.celebrating && !boy.tripping;
+  const legSwing = run ? Math.sin(f/8*Math.PI*2)*18 : 0;
+  const armSwing = run ? Math.sin(f/8*Math.PI*2+Math.PI)*20 : 0;
+  const bounce   = run ? Math.abs(Math.sin(f/8*Math.PI*2))*5 : 0;
+
+  ctx.scale(s, s);
+  ctx.translate(0, -bounce);
+
+  if (boy.celebrating) {
+    // Jump
+    ctx.translate(0, -18 * Math.abs(Math.sin(Date.now()/150)));
+  }
+  if (boy.tripping) {
+    ctx.rotate(.18 * Math.sin(Date.now()/80));
+  }
+
+  // Shadow
+  ctx.save();
+  ctx.translate(0, 5+bounce);
+  ctx.scale(1,.3);
+  ctx.beginPath();
+  ctx.arc(0,0,18,0,Math.PI*2);
+  ctx.fillStyle = 'rgba(0,0,0,.35)';
+  ctx.fill();
+  ctx.restore();
+
+  // Legs
+  ctx.save();
+  ctx.strokeStyle = '#3e2723'; ctx.lineWidth = 7; ctx.lineCap = 'round';
+  // Left leg
+  ctx.save();
+  ctx.translate(-7, 10);
+  ctx.rotate((legSwing)*Math.PI/180);
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,26);
+  ctx.stroke();
+  // Shoe
+  ctx.beginPath(); ctx.ellipse(0,28,9,4,0,0,Math.PI*2); ctx.fillStyle='#212121'; ctx.fill();
+  ctx.restore();
+  // Right leg
+  ctx.save();
+  ctx.translate(7, 10);
+  ctx.rotate((-legSwing)*Math.PI/180);
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(0,26);
+  ctx.stroke();
+  ctx.beginPath(); ctx.ellipse(0,28,9,4,0,0,Math.PI*2); ctx.fillStyle='#212121'; ctx.fill();
+  ctx.restore();
+  ctx.restore();
+
+  // Body
+  ctx.fillStyle = '#1565c0';
+  ctx.beginPath(); ctx.roundRect(-12,-8,24,22,4); ctx.fill();
+  // Shirt stripe
+  ctx.fillStyle = '#42a5f5';
+  ctx.fillRect(-12,-3,24,5);
+
+  // Arms
+  ctx.save();
+  ctx.strokeStyle = '#ffb74d'; ctx.lineWidth = 6; ctx.lineCap = 'round';
+  // Left arm
+  ctx.save();
+  ctx.translate(-12,-4);
+  ctx.rotate((-armSwing)*Math.PI/180);
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(-10,18); ctx.stroke();
+  ctx.restore();
+  // Right arm
+  ctx.save();
+  ctx.translate(12,-4);
+  ctx.rotate((armSwing)*Math.PI/180);
+  ctx.beginPath(); ctx.moveTo(0,0); ctx.lineTo(10,18); ctx.stroke();
+  ctx.restore();
+  ctx.restore();
+
+  // Head
+  ctx.beginPath();
+  ctx.arc(0,-22,16,0,Math.PI*2);
+  ctx.fillStyle = '#ffb74d';
+  ctx.fill();
+
+  // Hair
+  ctx.fillStyle = '#3e2723';
+  ctx.beginPath();
+  ctx.ellipse(0,-32,14,8,0,Math.PI,0);
+  ctx.fill();
+  // Spiky hair
+  for (let i = -2; i <= 2; i++) {
+    ctx.beginPath();
+    ctx.moveTo(i*5,-33);
+    ctx.lineTo(i*5+3,-42);
+    ctx.lineTo(i*5+6,-33);
+    ctx.fillStyle = '#3e2723';
+    ctx.fill();
+  }
+
+  // Eyes
+  ctx.fillStyle = boy.tripping ? '#ff1744' : '#212121';
+  ctx.beginPath(); ctx.arc(-6,-22,3,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(6,-22,3,0,Math.PI*2); ctx.fill();
+  // Pupils
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(-5,-22,1.2,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(7,-22,1.2,0,Math.PI*2); ctx.fill();
+
+  // Mouth
+  if (boy.celebrating) {
+    ctx.strokeStyle = '#e53935'; ctx.lineWidth=2.5;
+    ctx.beginPath(); ctx.arc(0,-18,5,0,Math.PI); ctx.stroke();
+  } else {
+    ctx.strokeStyle = '#5d4037'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(-4,-17); ctx.quadraticCurveTo(0,-14,4,-17); ctx.stroke();
+  }
+
+  // Hat
+  ctx.fillStyle = '#2d6a2f';
+  ctx.beginPath(); ctx.ellipse(0,-34,18,5,0,0,Math.PI*2); ctx.fill();
+  ctx.fillRect(-11,-50,22,18);
+  // Leaf on hat
+  ctx.fillStyle = '#8bc34a';
+  ctx.beginPath(); ctx.ellipse(10,-52,10,5,-0.5,0,Math.PI*2); ctx.fill();
+
+  // Sparkles when celebrating
+  if (boy.celebrating) {
+    const t = Date.now()/200;
+    for (let i = 0; i < 5; i++) {
+      const sx = Math.cos(t+i*1.26)*35;
+      const sy = -30 + Math.sin(t+i*1.26)*20;
+      ctx.fillStyle = '#ffd600';
+      ctx.font = 'bold 14px serif';
+      ctx.fillText('✦', sx-7, sy);
+    }
+  }
+
+  ctx.restore();
+}
+
+// ── FLYING NUMBERS (background deco) ──
+const flyNums = [];
+function spawnFlyNum() {
+  if (flyNums.length > 12) return;
+  flyNums.push({
+    x: rnd(W*.3, W),
+    y: rnd(H*.1, H*.6),
+    val: rnd(1,99),
+    vx: -rnd(1,3),
+    vy: (Math.random()-.5)*1.5,
+    alpha: .0,
+    fade: 1,
+    life: 0,
+    maxLife: rnd(60,120),
+    size: rnd(16,32),
+  });
+}
+
+function updateDrawFlyNums(ctx) {
+  for (let i = flyNums.length-1; i >= 0; i--) {
+    const n = flyNums[i];
+    n.x += n.vx; n.y += n.vy; n.life++;
+    n.alpha = n.life < 15 ? n.life/15 : n.life > n.maxLife-15 ? (n.maxLife-n.life)/15 : .45;
+    ctx.save();
+    ctx.globalAlpha = n.alpha;
+    ctx.font = `bold ${n.size}px 'Fredoka One', cursive`;
+    ctx.fillStyle = '#ffd600';
+    ctx.textAlign = 'center';
+    ctx.fillText(n.val, n.x, n.y);
+    ctx.restore();
+    if (n.life >= n.maxLife) flyNums.splice(i,1);
+  }
+}
+
+// ── MAIN LOOP ──
+let lastFrame = 0;
+let flyNumTimer = 0;
+
+function loop(now) {
+  requestAnimationFrame(loop);
+  const dt = Math.min(now - lastFrame, 80);
+  lastFrame = now;
+
+  // Clear game canvas
+  gctx.clearRect(0,0,W,H);
+
+  if (!gameScreen.classList.contains('hidden')) {
+    // Trees
+    treeLayers.forEach(layer => drawTrees(gctx, layer, dt));
+    // Ground deco
+    drawGround(gctx, dt);
+    // Ground base
+    gctx.fillStyle = 'rgba(45,106,47,.18)';
+    gctx.fillRect(0, H*.76, W, H*.24);
+
+    // Animate & draw boy
+    animateBoy(now);
+    drawBoy(gctx);
+
+    // Flying numbers (background)
+    flyNumTimer += dt;
+    if (flyNumTimer > 700) { spawnFlyNum(); flyNumTimer = 0; }
+    updateDrawFlyNums(gctx);
+
+    // Animated fireflies
+    drawFireflies(gctx, now);
+  }
+}
+
+// ── FIREFLIES ──
+const fireflies = Array.from({length:22}, (_,i) => ({
+  x: rnd(0,1000), y: rnd(100,500),
+  vx: (Math.random()-.5)*.5,
+  vy: (Math.random()-.5)*.3,
+  phase: Math.random()*Math.PI*2,
+  r: rnd(2,5),
+}));
+
+function drawFireflies(ctx, now) {
+  fireflies.forEach(f => {
+    f.x += f.vx; f.y += f.vy;
+    f.phase += .03;
+    if (f.x<0) f.x=W; if (f.x>W) f.x=0;
+    if (f.y<H*.2) f.vy=.3; if (f.y>H*.75) f.vy=-.3;
+    const alpha = (.3 + .7*(.5+.5*Math.sin(f.phase+now*.001))) * .8;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    const g = ctx.createRadialGradient(f.x,f.y,0,f.x,f.y,f.r*3);
+    g.addColorStop(0,'rgba(180,255,100,.9)');
+    g.addColorStop(1,'transparent');
+    ctx.fillStyle = g;
+    ctx.beginPath(); ctx.arc(f.x,f.y,f.r*3,0,Math.PI*2); ctx.fill();
+    ctx.restore();
+  });
+}
+
+// ── TITLE PREVIEW CANVAS ──
+const previewCanvas = $('previewCanvas');
+const pctx = previewCanvas.getContext('2d');
+let previewW, previewH;
+
+function resizePreview() {
+  const rect = previewCanvas.parentElement.getBoundingClientRect();
+  previewW = previewCanvas.width = rect.width;
+  previewH = previewCanvas.height = rect.height || 160;
+}
+
+function drawPreview(now) {
+  if (titleScreen.classList.contains('hidden')) return;
+  pctx.clearRect(0,0,previewW,previewH);
+
+  // Sky
+  const sky = pctx.createLinearGradient(0,0,0,previewH);
+  sky.addColorStop(0,'#071408'); sky.addColorStop(1,'#1a3a1c');
+  pctx.fillStyle=sky; pctx.fillRect(0,0,previewW,previewH);
+
+  // Ground
+  pctx.fillStyle='#2d6a2f'; pctx.fillRect(0,previewH*.7,previewW,previewH*.3);
+  pctx.fillStyle='#4caf50'; pctx.fillRect(0,previewH*.67,previewW,previewH*.06);
+
+  // Trees
+  [[.1,.55],[.3,.45],[.5,.6],[.7,.48],[.9,.55]].forEach(([xf,hf]) => {
+    const tx=previewW*xf, ty=previewH*.7, th=previewH*hf;
+    pctx.fillStyle='#1a3a1c';
+    pctx.fillRect(tx-4,ty-th*.3,8,th*.3);
+    pctx.beginPath(); pctx.arc(tx,ty-th*.3,th*.28,0,Math.PI*2);
+    pctx.fill();
+  });
+
+  // Mini boy
+  const bx=previewW*.22, by=previewH*.7;
+  const pf=Math.floor(now/100)%8;
+  const leg=Math.sin(pf/8*Math.PI*2)*12;
+  const sc=previewH/160;
+
+  pctx.save(); pctx.translate(bx,by); pctx.scale(sc,sc);
+  pctx.strokeStyle='#3e2723'; pctx.lineWidth=5; pctx.lineCap='round';
+  [[- 5,leg],[5,-leg]].forEach(([ox,ang]) => {
+    pctx.save(); pctx.translate(ox,8); pctx.rotate(ang*Math.PI/180);
+    pctx.beginPath(); pctx.moveTo(0,0); pctx.lineTo(0,22); pctx.stroke(); pctx.restore();
+  });
+  pctx.fillStyle='#1565c0'; pctx.beginPath(); pctx.roundRect(-10,-6,20,18,3); pctx.fill();
+  pctx.beginPath(); pctx.arc(0,-18,13,0,Math.PI*2); pctx.fillStyle='#ffb74d'; pctx.fill();
+  pctx.fillStyle='#2d6a2f'; pctx.beginPath(); pctx.ellipse(0,-27,12,4,0,0,Math.PI*2); pctx.fill();
+  pctx.restore();
+
+  // Flash nums
+  [[.5,.3,'7'],[.65,.15,'+3'],[.8,.35,'?']].forEach(([xf,yf,v]) => {
+    pctx.font = `bold ${previewH*.22}px 'Fredoka One',cursive`;
+    pctx.fillStyle='#ffd600';
+    pctx.globalAlpha = .7+.3*Math.sin(now*.002+xf*5);
+    pctx.textAlign='center';
+    pctx.fillText(v, previewW*xf, previewH*yf+previewH*.1);
+    pctx.globalAlpha=1;
+  });
+}
+
+let previewAF;
+function runPreviewLoop(now) {
+  previewAF = requestAnimationFrame(runPreviewLoop);
+  drawPreview(now);
+}
+
+// ── INIT ──
+resize();
+resizePreview();
+initTrees();
+initBoy();
+requestAnimationFrame(loop);
+runPreviewLoop(0);
+
+// ── BUTTON EVENTS ──
+$('btnPlay').addEventListener('click', () => {
+  cancelAnimationFrame(previewAF);
+  showScreen('gameScreen');
+  initBoy();
+  startGame();
+});
+$('btnRestart').addEventListener('click', () => {
+  showScreen('gameScreen');
+  initBoy();
+  startGame();
+});
+
+window.addEventListener('resize', () => {
+  resize();
+  initBoy();
+  initTrees();
+  resizePreview();
+});
+
+// ── VISUAL POLISH: Fog effect ──
+(function addFog() {
+  const fog = document.createElement('div');
+  fog.style.cssText = `
+    position:absolute; inset:0; pointer-events:none; z-index:5;
+    background: radial-gradient(ellipse at 50% 110%, rgba(45,106,47,.22) 0%, transparent 65%);
+  `;
+  $('gameWrapper').appendChild(fog);
+})();
+
+</script>
 </body>
 </html>
